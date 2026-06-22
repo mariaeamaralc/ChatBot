@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "a"
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "Bem-vindo, Cadete. Eu sou o Computador de Bordo da nave *Argus-7*. Seus sinais vitais estão estáveis, mas a situação da nave, não. Prepare-se.\n\n**SITUAÇÃO ATUAL:**\n\nVocê é despertado bruscamente pelo alarme de pressão interna, um som estridente que ecoa pelos corredores quase vazios. Um impacto de micrometeorito perfurou o casco principal no Convés de Engenharia, e o ar está vazando rapidamente para o vácuo implacável do espaço. Seus sensores indicam que a pressão está caindo exponencialmente; em menos de 5 minutos, o ambiente interno se tornará letal. A temperatura despenca, e o ar restante está rarefeito, tornando cada inspiração mais difícil. A luz de emergência pisca, revelando a fumaça de descompressão saindo da fissura.\n\nVocê precisa agir **agora** para selar a brecha e restaurar a atmosfera.\n\n**Qual sua ação?**\n\n**A)** Ativar o sistema de reparo automático de emergência, que utiliza um selante polimérico autocurável de rápida expansão para preencher a fissura, enquanto os compressores de nitrogênio de reserva iniciam a pressurização do compartimento.\n**B)** Correr para a área médica e injetar em si mesmo uma dose de \"OxyBoost\" (uma suspensão de perfluorocarbonetos para aumentar a capacidade de transporte de oxigênio no sangue), ganhando tempo para selar a fissura manualmente com uma placa de metal soldável.\n**C)** Abrir manualmente as comportas do compartimento adjacente ao vácuo, criando uma corrente de ar forte que, teoricamente, sugaria o micrometeorito (e qualquer detrito solto) para fora da fissura, antes de fechar as comportas e selar a área."
+        ]
+    }
+]
