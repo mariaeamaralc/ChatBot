@@ -1,4 +1,3 @@
-
 import os
 import json
 import PyPDF2
@@ -42,19 +41,61 @@ if not os.path.exists(CHAT_HISTORY_DIR):
 
 st.set_page_config(page_title="COSMOS", page_icon="🛸", layout="wide")
 
+# ── ACESSIBILIDADE: Estado inicial ────────────────────────────────────────────
+if "font_size" not in st.session_state:
+    st.session_state.font_size = "normal"   # "normal" | "grande" | "muito_grande"
+if "alto_contraste" not in st.session_state:
+    st.session_state.alto_contraste = False
+if "espacamento" not in st.session_state:
+    st.session_state.espacamento = False
+if "leitura_ativa" not in st.session_state:
+    st.session_state.leitura_ativa = False
+
+# Mapas de tamanho de fonte
+FONT_SCALE = {
+    "normal":       {"body": 15, "small": 11, "label": 8,  "title": 18, "mono": 11},
+    "grande":       {"body": 19, "small": 14, "label": 10, "title": 22, "mono": 14},
+    "muito_grande": {"body": 24, "small": 18, "label": 13, "title": 28, "mono": 18},
+}
+
+fs = FONT_SCALE[st.session_state.font_size]
+
+# Paleta: normal vs alto contraste
+if st.session_state.alto_contraste:
+    COR_TEXTO      = "#FFFFFF"
+    COR_ACENTO     = "#00FFD4"
+    COR_SECUNDARIO = "#FFD600"
+    COR_BG         = "#000000"
+    COR_BG2        = "#0A0A0A"
+    COR_BORDA      = "rgba(0,255,212,0.6)"
+    COR_USER_BG    = "rgba(255,214,0,0.08)"
+    COR_USER_BORDA = "rgba(255,214,0,0.8)"
+else:
+    COR_TEXTO      = "#B8D4E0"
+    COR_ACENTO     = "#00DCB4"
+    COR_SECUNDARIO = "#FF3264"
+    COR_BG         = "#060A14"
+    COR_BG2        = "#040710"
+    COR_BORDA      = "rgba(0,220,180,0.1)"
+    COR_USER_BG    = "rgba(255,50,100,0.03)"
+    COR_USER_BORDA = "rgba(255,50,100,0.5)"
+
+# Espaçamento de linha ampliado
+LINE_HEIGHT = "2.2" if st.session_state.espacamento else "1.75"
+LETTER_SPACING = "0.06em" if st.session_state.espacamento else "normal"
+WORD_SPACING   = "0.12em" if st.session_state.espacamento else "normal"
+
 # ── ESTILOS GLOBAIS ──────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* BASE */
-html, body, .stApp {
-    background-color: #060A14 !important;
+html, body, .stApp {{
+    background-color: {COR_BG} !important;
     font-family: 'Inter', sans-serif !important;
-}
+}}
 
-/* DOT GRID */
-.stApp::before {
+.stApp::before {{
     content: '';
     position: fixed;
     inset: 0;
@@ -62,222 +103,184 @@ html, body, .stApp {
     background-size: 28px 28px;
     pointer-events: none;
     z-index: 0;
-}
+}}
 
-/* BLOCO PRINCIPAL */
-.block-container {
+.block-container {{
     padding-top: 0 !important;
     padding-bottom: 80px !important;
     max-width: 100% !important;
-}
+}}
 
-/* ESCONDE CHROME DO STREAMLIT */
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer, header {{ visibility: hidden; }}
 
 /* ── SIDEBAR ── */
-[data-testid="stSidebar"] {
-    background: #040710 !important;
-    border-right: 1px solid rgba(0,220,180,0.12) !important;
+[data-testid="stSidebar"] {{
+    background: {COR_BG2} !important;
+    border-right: 1px solid {COR_BORDA} !important;
     padding-top: 0 !important;
-}
-[data-testid="stSidebar"] > div:first-child {
-    padding-top: 0 !important;
-}
-[data-testid="stSidebarContent"] {
-    padding: 0 16px 24px !important;
-}
+}}
+[data-testid="stSidebar"] > div:first-child {{ padding-top: 0 !important; }}
+[data-testid="stSidebarContent"] {{ padding: 0 16px 24px !important; }}
 
-/* Títulos da sidebar via markdown h3 */
-[data-testid="stSidebar"] h3 {
+[data-testid="stSidebar"] h3 {{
     font-family: 'Orbitron', monospace !important;
-    font-size: 9px !important;
+    font-size: {fs["label"]}px !important;
     font-weight: 700 !important;
     letter-spacing: 4px !important;
     text-transform: uppercase !important;
-    color: rgba(0,220,180,0.45) !important;
+    color: {COR_ACENTO} !important;
+    opacity: 0.7;
     padding: 20px 0 8px !important;
     margin: 0 !important;
-    border-bottom: 1px solid rgba(0,220,180,0.1) !important;
-}
+    border-bottom: 1px solid {COR_BORDA} !important;
+}}
 
-/* Textos gerais da sidebar */
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] label,
-[data-testid="stSidebar"] small {
+[data-testid="stSidebar"] small {{
     font-family: 'Inter', sans-serif !important;
     color: #7090A0 !important;
-    font-size: 12px !important;
-}
+    font-size: {fs["small"]}px !important;
+}}
 
 /* ── BOTÕES ── */
-button[kind="primary"] {
+button[kind="primary"] {{
     background: transparent !important;
     border: 1px solid rgba(255,50,100,0.6) !important;
     color: #FF3264 !important;
     font-family: 'Orbitron', monospace !important;
-    font-size: 10px !important;
+    font-size: {fs["label"]}px !important;
     font-weight: 700 !important;
     letter-spacing: 2px !important;
     border-radius: 3px !important;
     transition: all 0.2s !important;
     text-transform: uppercase !important;
-}
-button[kind="primary"]:hover {
+}}
+button[kind="primary"]:hover {{
     background: rgba(255,50,100,0.1) !important;
     border-color: #FF3264 !important;
     box-shadow: 0 0 16px rgba(255,50,100,0.3) !important;
-    color: #FF3264 !important;
-}
+}}
 
-button[kind="secondary"] {
+button[kind="secondary"] {{
     background: transparent !important;
-    border: 1px solid rgba(0,220,180,0.15) !important;
-    color: rgba(0,220,180,0.55) !important;
+    border: 1px solid {COR_BORDA} !important;
+    color: {COR_ACENTO} !important;
+    opacity: 0.7;
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 10px !important;
+    font-size: {fs["label"]}px !important;
     border-radius: 3px !important;
     text-align: left !important;
     transition: all 0.2s !important;
-}
-button[kind="secondary"]:hover {
-    border-color: rgba(0,220,180,0.5) !important;
-    color: #00DCB4 !important;
+}}
+button[kind="secondary"]:hover {{
+    border-color: {COR_ACENTO} !important;
+    opacity: 1 !important;
     background: rgba(0,220,180,0.05) !important;
-}
+}}
 
-/* ── CHAT MESSAGES ── */
-[data-testid="stChatMessage"] {
+/* ── MENSAGENS DE CHAT ── */
+[data-testid="stChatMessage"] {{
     background: rgba(8,14,26,0.85) !important;
-    border: 1px solid rgba(0,220,180,0.1) !important;
-    border-left: 2px solid rgba(0,220,180,0.4) !important;
+    border: 1px solid {COR_BORDA} !important;
+    border-left: 3px solid {COR_ACENTO} !important;
     border-radius: 4px !important;
-    margin-bottom: 10px !important;
-    padding: 14px 18px !important;
-}
+    margin-bottom: 12px !important;
+    padding: 16px 20px !important;
+}}
 
-/* Mensagem do usuário — acento magenta */
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
-    border-left-color: rgba(255,50,100,0.5) !important;
-    background: rgba(255,50,100,0.03) !important;
-}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {{
+    border-left-color: {COR_USER_BORDA} !important;
+    background: {COR_USER_BG} !important;
+}}
 
-[data-testid="stChatMessageContent"] p {
+[data-testid="stChatMessageContent"] p {{
     font-family: 'Inter', sans-serif !important;
-    font-size: 15px !important;
-    line-height: 1.75 !important;
-    color: #B8D4E0 !important;
-}
-[data-testid="stChatMessageContent"] strong {
-    color: #00DCB4 !important;
-}
-[data-testid="stChatMessageContent"] em {
-    color: rgba(184,212,224,0.7) !important;
-}
+    font-size: {fs["body"]}px !important;
+    line-height: {LINE_HEIGHT} !important;
+    letter-spacing: {LETTER_SPACING} !important;
+    word-spacing: {WORD_SPACING} !important;
+    color: {COR_TEXTO} !important;
+}}
+
+[data-testid="stChatMessageContent"] strong {{ color: {COR_ACENTO} !important; }}
+[data-testid="stChatMessageContent"] em {{ color: rgba(184,212,224,0.7) !important; }}
 
 /* ── CHAT INPUT ── */
-
-[data-testid="stChatInput"] {
-
-    background: #060A14 !important;
-
-    border-top: 1px solid rgba(0,220,180,0.12) !important;
-
-}
-
-/* wrapper do textarea (onde o gradient FUNCIONA melhor) */
-[data-testid="stChatInput"] > div {
-
-    background: linear-gradient(
-        135deg,
-        #060A14 0%,
-        #1A1D24 100%
-    ) !important;
-
+[data-testid="stChatInput"] {{
+    background: {COR_BG} !important;
+    border-top: 1px solid {COR_BORDA} !important;
+}}
+[data-testid="stChatInput"] > div {{
+    background: linear-gradient(135deg, {COR_BG} 0%, #1A1D24 100%) !important;
     border-radius: 6px !important;
-
     padding: 6px !important;
-
-}
-
-/* textarea em si transparente pra mostrar o gradiente */
-[data-testid="stChatInput"] textarea {
-
-    background: #060A14 !important;
-
-    border: 1px solid rgba(0,220,180,0.18) !important;
-
+}}
+[data-testid="stChatInput"] textarea {{
+    background: {COR_BG} !important;
+    border: 1px solid {COR_BORDA} !important;
     border-radius: 4px !important;
-
-    color: rgba(0,220,180,0.5) !important;
-
+    color: {COR_ACENTO} !important;
     font-family: 'Inter', sans-serif !important;
-
-    font-size: 14px !important;
-
-    caret-color: #00DCB4 !important;
-}
-
-/* placeholder */
-[data-testid="stChatInput"] textarea::placeholder {
-
-    color: #060A14 !important;
-
+    font-size: {fs["body"]}px !important;
+    caret-color: {COR_ACENTO} !important;
+}}
+[data-testid="stChatInput"] textarea::placeholder {{
+    color: {COR_BG} !important;
     font-family: 'JetBrains Mono', monospace !important;
+    font-size: {fs["small"]}px !important;
+}}
+[data-testid="stChatInput"] textarea:focus {{
+    border-color: {COR_ACENTO} !important;
+    box-shadow: 0 0 0 2px rgba(0,220,180,0.15) !important;
+    outline: 2px solid {COR_ACENTO} !important;
+}}
 
-    font-size: 12px !important;
-}
+/* ── ACESSIBILIDADE: foco visível em todos os elementos ── */
+*:focus-visible {{
+    outline: 2px solid {COR_ACENTO} !important;
+    outline-offset: 3px !important;
+}}
 
-/* focus */
-[data-testid="stChatInput"] textarea:focus {
-
-    border-color: rgba(0,220,180,0.5) !important;
-
-    box-shadow: 0 0 0 1px rgba(0,220,180,0.1) !important;
-}
 /* FILE UPLOADER */
-[data-testid="stFileUploader"] {
+[data-testid="stFileUploader"] {{
     background: rgba(0,220,180,0.02) !important;
     border: 1px dashed rgba(0,220,180,0.15) !important;
     border-radius: 3px !important;
-}
-[data-testid="stFileUploader"] label {
-    font-size: 12px !important;
-    color: rgba(0,220,180,0.4) !important;
-}
-
-/* ALERTS */
-[data-testid="stAlert"] {
-    font-family: 'Inter', sans-serif !important;
-    font-size: 13px !important;
-    border-radius: 3px !important;
-}
+}}
 
 /* SCROLLBAR */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: #060A14; }
-::-webkit-scrollbar-thumb { background: rgba(0,220,180,0.2); border-radius: 2px; }
+::-webkit-scrollbar {{ width: 4px; }}
+::-webkit-scrollbar-track {{ background: {COR_BG}; }}
+::-webkit-scrollbar-thumb {{ background: {COR_ACENTO}; opacity: 0.3; border-radius: 2px; }}
 
-/* DIVIDER */
-hr { border: none !important; border-top: 1px solid rgba(0,220,180,0.08) !important; margin: 12px 0 !important; }
+hr {{ border: none !important; border-top: 1px solid rgba(0,220,180,0.08) !important; margin: 12px 0 !important; }}
+
+/* Respeita preferência de sistema para movimento reduzido */
+@media (prefers-reduced-motion: reduce) {{
+    * {{ animation: none !important; transition: none !important; }}
+}}
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── HELPER: bloco de telemetria com inline style ──────────────────────────────
+# ── HELPER: bloco de telemetria ───────────────────────────────────────────────
 def tele_card(label, value, bar_pct=None, value_color="#00DCB4", bar_color="#00DCB4"):
     glow = f"0 0 14px {value_color}80"
     bar_html = ""
     if bar_pct is not None:
         bar_html = f"""
-        <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:8px;">
+        <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:8px;"
+             role="progressbar" aria-valuenow="{bar_pct}" aria-valuemin="0" aria-valuemax="100"
+             aria-label="{label}: {bar_pct}%">
             <div style="height:100%;width:{bar_pct}%;background:{bar_color};
                         border-radius:2px;box-shadow:0 0 6px {bar_color}80;"></div>
         </div>"""
     return f"""
     <div style="background:rgba(6,10,20,0.9);border:1px solid rgba(0,220,180,0.1);
                 border-top:1px solid rgba(0,220,180,0.25);border-radius:4px;
-                padding:12px 14px;margin-bottom:10px;">
-        <div style="font-family:'Orbitron',monospace;font-size:8px;font-weight:700;
+                padding:12px 14px;margin-bottom:10px;" role="status" aria-label="{label}: {value}">
+        <div style="font-family:'Orbitron',monospace;font-size:{fs['label']}px;font-weight:700;
                     letter-spacing:3px;text-transform:uppercase;color:rgba(0,220,180,0.4);
                     margin-bottom:6px;">{label}</div>
         <div style="font-family:'Orbitron',monospace;font-size:20px;font-weight:700;
@@ -287,14 +290,14 @@ def tele_card(label, value, bar_pct=None, value_color="#00DCB4", bar_color="#00D
 
 
 def coord_card():
-    return """
+    return f"""
     <div style="background:rgba(6,10,20,0.9);border:1px solid rgba(0,220,180,0.1);
                 border-top:1px solid rgba(0,220,180,0.25);border-radius:4px;
                 padding:12px 14px;margin-bottom:10px;">
-        <div style="font-family:'Orbitron',monospace;font-size:8px;font-weight:700;
+        <div style="font-family:'Orbitron',monospace;font-size:{fs['label']}px;font-weight:700;
                     letter-spacing:3px;text-transform:uppercase;color:rgba(0,220,180,0.4);
                     margin-bottom:8px;">Coordenadas</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;
+        <div style="font-family:'JetBrains Mono',monospace;font-size:{fs['mono']}px;
                     color:#00DCB4;line-height:2;opacity:0.85;">
             X &nbsp;4.823.091<br>
             Y −0.334.872<br>
@@ -304,38 +307,36 @@ def coord_card():
 
 
 # ── HEADER ───────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;
             padding:13px 28px;border-bottom:1px solid rgba(0,220,180,0.12);
             background:linear-gradient(90deg,#040710,#081222,#040710);
-            position:relative;overflow:hidden;margin-bottom:4px;">
+            position:relative;overflow:hidden;margin-bottom:4px;"
+     role="banner" aria-label="COSMOS — Cabeçalho principal">
+
   <div style="position:absolute;bottom:0;left:0;right:0;height:1px;
               background:linear-gradient(90deg,transparent,#00DCB4,#FF3264,#00DCB4,transparent);
-              animation:scanline 5s linear infinite;"></div>
-  <style>@keyframes scanline{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>
+              animation:scanline 5s linear infinite;" aria-hidden="true"></div>
+  <style>@keyframes scanline{{0%{{transform:translateX(-100%)}}100%{{transform:translateX(100%)}}}}</style>
 
-  <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:900;
+  <div style="font-family:'Orbitron',monospace;font-size:{fs['title']}px;font-weight:900;
               letter-spacing:6px;color:#00DCB4;
-              text-shadow:0 0 20px rgba(0,220,180,0.7),0 0 40px rgba(0,220,180,0.2);">
-    COSMOS<span style="color:#FF3264;">
-    <span style="font-size:10px;font-weight:400;opacity:0.4;letter-spacing:3px;margin-left:8px;">v4.2.1</span>
+              text-shadow:0 0 20px rgba(0,220,180,0.7),0 0 40px rgba(0,220,180,0.2);"
+       aria-label="COSMOS — Sistema Educacional de Ciências da Natureza">
+    COSMOS<span style="color:#FF3264;"></span>
+    <span style="font-size:{fs['small']}px;font-weight:400;opacity:0.4;letter-spacing:3px;margin-left:8px;">v4.2.1</span>
   </div>
 
-  <div style="display:flex;gap:16px;align-items:center;">
-    <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;
+  <div style="display:flex;gap:16px;align-items:center;" role="status" aria-label="Status do sistema">
+    <span style="font-family:'Inter',sans-serif;font-size:{fs['small']}px;font-weight:600;letter-spacing:2px;
                  color:#00DCB4;border:1px solid rgba(0,220,180,0.3);background:rgba(0,220,180,0.06);
-                 padding:3px 10px;border-radius:2px;">SYS ONLINE</span>
-    <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;
+                 padding:3px 10px;border-radius:2px;" title="Sistema operacional">SYS ONLINE</span>
+    <span style="font-family:'Inter',sans-serif;font-size:{fs['small']}px;font-weight:600;letter-spacing:2px;
                  color:#FFD200;border:1px solid rgba(255,210,0,0.3);background:rgba(255,210,0,0.06);
-                 padding:3px 10px;border-radius:2px;">SETOR-7 ⚠</span>
-    <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;
+                 padding:3px 10px;border-radius:2px;" title="Alerta no Setor 7">SETOR-7 ⚠</span>
+    <span style="font-family:'Inter',sans-serif;font-size:{fs['small']}px;font-weight:600;letter-spacing:2px;
                  color:#FF3264;border:1px solid rgba(255,50,100,0.3);background:rgba(255,50,100,0.06);
-                 padding:3px 10px;border-radius:2px;">O₂ 61%</span>
-  </div>
-
-  <div style="font-family:'Inter',sans-serif;font-size:11px;
-              color:rgba(200,230,240,0.35);letter-spacing:3px;text-transform:uppercase;">
-   
+                 padding:3px 10px;border-radius:2px;" title="Nível de oxigênio crítico">O₂ 61%</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -354,14 +355,13 @@ col_principal, col_status = st.columns([3, 1])
 uploaded_context = ""
 
 with st.sidebar:
-    # Logo topo da sidebar
-    st.markdown("""
+    st.markdown(f"""
     <div style="background:rgba(0,220,180,0.04);border-bottom:1px solid rgba(0,220,180,0.1);
                 padding:18px 4px 14px;text-align:center;margin-bottom:4px;">
         <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:900;
                     letter-spacing:5px;color:#00DCB4;
                     text-shadow:0 0 16px rgba(0,220,180,0.6);">COSMOS</div>
-        <div style="font-family:'Inter',sans-serif;font-size:9px;letter-spacing:3px;
+        <div style="font-family:'Inter',sans-serif;font-size:{fs['small']}px;letter-spacing:3px;
                     color:rgba(0,220,180,0.35);text-transform:uppercase;margin-top:2px;">
             Software Educacional de Ciências da Natureza
         </div>
@@ -390,17 +390,95 @@ with st.sidebar:
                     st.session_state.current_session_id = "_".join(file_name.split("_")[:2])
                     st.rerun()
         else:
-            st.markdown("""
-            <div style="font-family:'Inter',sans-serif;font-size:11px;
+            st.markdown(f"""
+            <div style="font-family:'Inter',sans-serif;font-size:{fs['small']}px;
                         color:rgba(0,220,180,0.25);letter-spacing:1px;
                         text-align:center;padding:12px 0;">
                 — Sem missões gravadas —
             </div>
             """, unsafe_allow_html=True)
 
+    # ── PAINEL DE ACESSIBILIDADE ─────────────────────────────────────────────
+    st.markdown("### ♿ Acessibilidade")
+
+    # — Tamanho de fonte —
+    st.markdown(f"<p style='font-size:{fs['small']}px;margin-bottom:4px;'>Tamanho do texto</p>", unsafe_allow_html=True)
+    cols_font = st.columns(3)
+    with cols_font[0]:
+        if st.button("A", key="font_normal", help="Texto normal", use_container_width=True):
+            st.session_state.font_size = "normal"
+            st.rerun()
+    with cols_font[1]:
+        if st.button("A+", key="font_grande", help="Texto grande", use_container_width=True):
+            st.session_state.font_size = "grande"
+            st.rerun()
+    with cols_font[2]:
+        if st.button("A++", key="font_muito", help="Texto muito grande", use_container_width=True):
+            st.session_state.font_size = "muito_grande"
+            st.rerun()
+
+    # Indicador do tamanho ativo
+    tamanho_label = {"normal": "Normal", "grande": "Grande", "muito_grande": "Máximo"}
+    st.markdown(f"""
+    <div style="font-family:'JetBrains Mono',monospace;font-size:{fs['small']}px;
+                color:rgba(0,220,180,0.5);text-align:center;margin:4px 0 10px;">
+        ▸ {tamanho_label[st.session_state.font_size]}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # — Alto contraste —
+    contraste_label = "◉ ALTO CONTRASTE: ON" if st.session_state.alto_contraste else "○ Alto contraste: off"
+    if st.button(contraste_label, key="toggle_contraste", use_container_width=True,
+                 help="Aumenta contraste para facilitar leitura"):
+        st.session_state.alto_contraste = not st.session_state.alto_contraste
+        st.rerun()
+
+    # — Espaçamento ampliado —
+    espaco_label = "◉ ESPAÇAMENTO: ON" if st.session_state.espacamento else "○ Espaçamento ampliado: off"
+    if st.button(espaco_label, key="toggle_espacamento", use_container_width=True,
+                 help="Aumenta espaçamento entre linhas e letras"):
+        st.session_state.espacamento = not st.session_state.espacamento
+        st.rerun()
+
+    # — Leitura em voz alta —
+    voz_label = "◉ VOZ: ON" if st.session_state.leitura_ativa else "○ Leitura em voz alta: off"
+    if st.button(voz_label, key="toggle_voz", use_container_width=True,
+                 help="Lê automaticamente as respostas do Computador de Bordo"):
+        st.session_state.leitura_ativa = not st.session_state.leitura_ativa
+        st.rerun()
+
+    # Script de Text-to-Speech (injetado apenas quando ativo)
+    if st.session_state.leitura_ativa:
+        st.markdown("""
+        <script>
+        // Aguarda o DOM carregar e lê a última mensagem do assistente
+        function lerUltimaMensagem() {
+            if (!window.speechSynthesis) return;
+            const msgs = document.querySelectorAll('[data-testid="stChatMessage"]');
+            if (msgs.length === 0) return;
+            const ultima = msgs[msgs.length - 1];
+            const textoEl = ultima.querySelector('[data-testid="stChatMessageContent"] p');
+            if (!textoEl) return;
+            const texto = textoEl.innerText;
+            if (window._cosmos_ultimo_texto === texto) return; // evita releitura
+            window._cosmos_ultimo_texto = texto;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(texto);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+        // Verifica a cada 1.5s se uma nova mensagem surgiu
+        if (!window._cosmos_tts_interval) {
+            window._cosmos_tts_interval = setInterval(lerUltimaMensagem, 1500);
+        }
+        </script>
+        """, unsafe_allow_html=True)
+
     st.markdown("### Subsistemas")
 
-    with st.expander("Insira um documento para que o Cosmos leia (PDF ou TXT)"):
+    with st.expander("Insira um documento (PDF ou TXT)"):
         uploaded_file = st.file_uploader(
             "Selecione um arquivo",
             type=["txt", "pdf"],
@@ -419,8 +497,8 @@ with st.sidebar:
                 st.error(f"Erro de leitura: {error}")
 
     with st.expander("⚠  Pane de Emergência"):
-        st.markdown("""
-        <div style="font-family:'Inter',sans-serif;font-size:11px;
+        st.markdown(f"""
+        <div style="font-family:'Inter',sans-serif;font-size:{fs['small']}px;
                     color:rgba(255,210,0,0.5);padding:0 0 8px;">
             Simula uma falha crítica aleatória para treino de resposta.
         </div>
@@ -484,13 +562,11 @@ if trigger_quiz:
 # ── HISTÓRICO DE CHAT ─────────────────────────────────────────────────────────
 with col_principal:
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-    
-    # SE O CHAT ESTIVER VAZIO: Exibe a sua mensagem de boas-vindas customizada
+
     if len(st.session_state.active_chat.history) == 0:
         with st.chat_message("assistant", avatar="🤖"):
-            st.markdown("**Bem-vindo, para iniciar uma nova missão digite a, b, c ou insira um comando**")
-    
-    # Renderiza o histórico normalmente se já houver mensagens
+            st.markdown(f"**Bem-vindo, para iniciar uma nova missão digite A, B, C ou insira um comando**")
+
     for message in st.session_state.active_chat.history:
         if "Gere um problema de sobrevivência" in message.parts[0].text and message.role == "user":
             continue
@@ -511,7 +587,6 @@ if user_input := st.chat_input("▸   Digite A, B ou C  —  ou um comando de so
             st.markdown(user_input)
         with st.chat_message("assistant", avatar="🤖"):
             with st.spinner("Processando dados telemétricos..."):
-                # Se for a primeira mensagem da missão, podemos guiar o Gemini para já começar gerando o primeiro cenário
                 if len(st.session_state.active_chat.history) == 0:
                     comando_inicial = f"O usuário iniciou o jogo com o comando: '{user_input}'. Inicie a primeira missão imediatamente com base nisso."
                     final_prompt = (
@@ -523,9 +598,8 @@ if user_input := st.chat_input("▸   Digite A, B ou C  —  ou um comando de so
                         f"Considere os parâmetros deste manual técnico:\n{uploaded_context}\n\nComando: {user_input}"
                         if uploaded_context else user_input
                     )
-                    
+
                 response = execute_safe_request(final_prompt)
                 if response:
                     st.markdown(response.text)
                     persist_chat_history()
-
