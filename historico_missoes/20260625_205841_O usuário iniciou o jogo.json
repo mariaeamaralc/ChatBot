@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "O usuário iniciou o jogo com o comando: 'a'. Inicie a primeira missão imediatamente com base nisso."
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "Saudações, Comandante! O Computador de Bordo está ativado. Preparado para os desafios?\n\nComando 'a' recebido. Iniciando Missão 001: Despertar Crítico.\n\n---\n\n**Computador de Bordo:** \"Comandante, alerta vermelho! A nave *Andromeda* foi atingida por uma descarga eletromagnética massiva. Os sistemas principais estão offline, as luzes de emergência piscam intermitentemente e o ar está ficando rarefeito. O biossensor indica que o nível de Oxigênio (O2) na cabine está caindo rapidamente para **18%**, e o Dióxido de Carbono (CO2) está subindo perigosamente para **2%**. Sem energia para os depuradores de CO2 e geradores de O2, a hipóxia (baixa O2) e a acidose respiratória (alta CO2) são iminentes. Você precisa agir agora para sobreviver. Qual sua prioridade?\"\n\n**A. Tentar restabelecer a energia principal para o sistema de suporte de vida.**\n**B. Ativar manualmente os filtros de lítio-hidróxido para absorver o CO2 acumulado.**\n**C. Iniciar o procedimento de emergência de pressurização da cabine, usando os tanques de ar comprimido.**"
+        ]
+    }
+]

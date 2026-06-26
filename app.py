@@ -48,8 +48,8 @@ if "alto_contraste" not in st.session_state:
     st.session_state.alto_contraste = False
 if "espacamento" not in st.session_state:
     st.session_state.espacamento = False
-if "leitura_ativa" not in st.session_state:
-    st.session_state.leitura_ativa = False
+if "daltonismo" not in st.session_state:
+    st.session_state.daltonismo = "none"  # "none" | "deuteranopia" | "protanopia" | "tritanopia"
 
 # Mapas de tamanho de fonte
 FONT_SCALE = {
@@ -261,6 +261,41 @@ hr {{ border: none !important; border-top: 1px solid rgba(0,220,180,0.08) !impor
     * {{ animation: none !important; transition: none !important; }}
 }}
 </style>
+
+<!-- Filtros SVG para simulação/correção de daltonismo -->
+<svg style="position:absolute;width:0;height:0;" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Deuteranopia (verde) -->
+    <filter id="filter-deuteranopia">
+      <feColorMatrix type="matrix" values="
+        0.625 0.375 0     0 0
+        0.70  0.30  0     0 0
+        0     0.30  0.70  0 0
+        0     0     0     1 0"/>
+    </filter>
+    <!-- Protanopia (vermelho) -->
+    <filter id="filter-protanopia">
+      <feColorMatrix type="matrix" values="
+        0.567 0.433 0     0 0
+        0.558 0.442 0     0 0
+        0     0.242 0.758 0 0
+        0     0     0     1 0"/>
+    </filter>
+    <!-- Tritanopia (azul) -->
+    <filter id="filter-tritanopia">
+      <feColorMatrix type="matrix" values="
+        0.95  0.05  0     0 0
+        0     0.433 0.567 0 0
+        0     0.475 0.525 0 0
+        0     0     0     1 0"/>
+    </filter>
+  </defs>
+</svg>
+
+<style>
+/* Aplica filtro de daltonismo no app inteiro */
+{"html { filter: url(#filter-" + st.session_state.daltonismo + ") !important; }" if st.session_state.daltonismo != "none" else ""}
+</style>
 """, unsafe_allow_html=True)
 
 
@@ -440,41 +475,23 @@ with st.sidebar:
         st.session_state.espacamento = not st.session_state.espacamento
         st.rerun()
 
-    # — Leitura em voz alta —
-    voz_label = "◉ VOZ: ON" if st.session_state.leitura_ativa else "○ Leitura em voz alta: off"
-    if st.button(voz_label, key="toggle_voz", use_container_width=True,
-                 help="Lê automaticamente as respostas do Computador de Bordo"):
-        st.session_state.leitura_ativa = not st.session_state.leitura_ativa
-        st.rerun()
+    # — Modo daltônico —
+    st.markdown(f"<p style='font-size:{fs['small']}px;margin-bottom:4px;'>Modo daltonismo</p>", unsafe_allow_html=True)
 
-    # Script de Text-to-Speech (injetado apenas quando ativo)
-    if st.session_state.leitura_ativa:
-        st.markdown("""
-        <script>
-        // Aguarda o DOM carregar e lê a última mensagem do assistente
-        function lerUltimaMensagem() {
-            if (!window.speechSynthesis) return;
-            const msgs = document.querySelectorAll('[data-testid="stChatMessage"]');
-            if (msgs.length === 0) return;
-            const ultima = msgs[msgs.length - 1];
-            const textoEl = ultima.querySelector('[data-testid="stChatMessageContent"] p');
-            if (!textoEl) return;
-            const texto = textoEl.innerText;
-            if (window._cosmos_ultimo_texto === texto) return; // evita releitura
-            window._cosmos_ultimo_texto = texto;
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(texto);
-            utterance.lang = 'pt-BR';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
-        // Verifica a cada 1.5s se uma nova mensagem surgiu
-        if (!window._cosmos_tts_interval) {
-            window._cosmos_tts_interval = setInterval(lerUltimaMensagem, 1500);
-        }
-        </script>
-        """, unsafe_allow_html=True)
+    MODOS_DALTONISMO = {
+        "none":         "○ Desativado",
+        "deuteranopia": "◉ Deuteranopia (verde)",
+        "protanopia":   "◉ Protanopia (vermelho)",
+        "tritanopia":   "◉ Tritanopia (azul)",
+    }
+    for modo, rotulo in MODOS_DALTONISMO.items():
+        ativo = st.session_state.daltonismo == modo
+        label = rotulo.replace("○", "◉") if ativo else rotulo.replace("◉", "○")
+        estilo = "primary" if ativo else "secondary"
+        if st.button(label, key=f"dalton_{modo}", use_container_width=True,
+                     help=f"Filtro de cor para {rotulo.split('(')[-1].rstrip(')')} se aplicável"):
+            st.session_state.daltonismo = modo
+            st.rerun()
 
     st.markdown("### Subsistemas")
 
