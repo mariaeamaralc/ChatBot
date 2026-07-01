@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "O usuário iniciou o jogo com o comando: 'a'. Inicie a primeira missão imediatamente com base nisso."
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "Computador de Bordo ativado. Boas-vindas, Tripulante.\nSua missão: Sobrevivência.\n\n**[ALERTA CRÍTICO DE PRESSURIZAÇÃO!]**\nA estação espacial 'Érebo I', sua solitária base de pesquisa, acaba de ser atingida. Um micrometeorito perfurou o casco na Seção de Propulsão Auxiliar. Sensores indicam uma descompressão explosiva. O som sibilante do ar escapando é ensurdecedor, e partículas de poeira e detritos flutuam caoticamente na atmosfera rarefeita. Seus indicadores biométricos piscam em vermelho: oxigênio sanguíneo caindo, risco de hipóxia grave em segundos. Você está na Seção de Habitação, a poucos metros do ponto de impacto, e as comportas de emergência da Seção de Propulsão Auxiliar ainda não fecharam automaticamente.\n\nQual a sua ação, Tripulante?\n\n---\n\n**A) Isolar a área danificada:** Correr para o painel de controle central na Seção de Habitação e, com os últimos segundos de oxigênio em sua mente, tentar acionar manualmente as comportas de isolamento para selar a Seção de Propulsão Auxiliar, contendo a perda de pressão apenas àquela área.\n\n**B) Ir para a cápsula de fuga:** Ignorar o painel de controle e fazer uma corrida desesperada através da área de descompressão ativa até a cápsula de fuga de emergência, que fica do outro lado da Seção de Propulsão Auxiliar, na esperança de ejetar antes que a estação seja inviável.\n\n**C) Ativar o sistema de repressurização de emergência:** Acionar o sistema de injeção de gás de emergência na Seção de Habitação, liberando as reservas de ar comprimido para tentar igualar a pressão interna enquanto o vazamento persiste, ganhando tempo para pensar em outra solução."
+        ]
+    }
+]

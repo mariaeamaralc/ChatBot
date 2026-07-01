@@ -22,7 +22,14 @@ SYSTEM_PROMPT = (
     "Seu papel é testar os conhecimentos do usuário em Ciências da Natureza (Física, Química, Biologia e Astronomia). "
     "A cada turno, descreva uma situação crítica de sobrevivência no espaço de forma imersiva. "
     "Ofereça sempre 3 opções de ação (A, B e C) baseadas em conceitos científicos reais. "
-    "Se o jogador errar, explique cientificamente o porquê de forma curta, e mude o rumo da história."
+    "Se o jogador errar, explique cientificamente o porquê de forma curta, e mude o rumo da história. "
+    "\n\nIMPORTANTE — REGRA DE AVALIAÇÃO: sempre que o usuário responder a uma pergunta anterior escolhendo "
+    "A, B ou C, sua resposta DEVE começar, na primeira linha e sem nenhum texto antes, com exatamente uma das tags: "
+    "[CORRETO] (se a escolha foi cientificamente correta/segura) ou [INCORRETO] (se foi errada). "
+    "Depois da tag, continue normalmente com a explicação e a próxima situação. "
+    "Nunca explique ou mencione a existência dessa tag para o jogador — ela é apenas para controle interno do sistema. "
+    "Quando você estiver apenas iniciando a primeira cena da missão (ainda sem nenhuma resposta do jogador para avaliar), "
+    "NÃO use nenhuma tag."
 )
 
 CHAVES_VALIDAS = [key for key in API_KEYS if key]
@@ -39,7 +46,12 @@ CHAT_HISTORY_DIR = "historico_missoes"
 if not os.path.exists(CHAT_HISTORY_DIR):
     os.makedirs(CHAT_HISTORY_DIR)
 
-st.set_page_config(page_title="COSMOS", page_icon="🛸", layout="wide")
+st.set_page_config(
+    page_title="COSMOS",
+    page_icon="🛸",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # ── ACESSIBILIDADE: Estado inicial ────────────────────────────────────────────
 if "font_size" not in st.session_state:
@@ -57,6 +69,12 @@ if "uploaded_context" not in st.session_state:
     st.session_state.uploaded_context = ""
 if "uploaded_file_name" not in st.session_state:
     st.session_state.uploaded_file_name = None
+
+# ── SISTEMA DE RODADA: 3 perguntas por rodada, com pontuação ──────────────────
+if "rodada_perguntas_respondidas" not in st.session_state:
+    st.session_state.rodada_perguntas_respondidas = 0
+if "rodada_acertos" not in st.session_state:
+    st.session_state.rodada_acertos = 0
 
 # Mapas de tamanho de fonte
 FONT_SCALE = {
@@ -118,7 +136,8 @@ html, body, .stApp {{
     max-width: 100% !important;
 }}
 
-#MainMenu, footer, header {{ visibility: hidden; }}
+#MainMenu, footer {{ visibility: hidden; }}
+header {{ background: transparent !important; height: 0 !important; }}
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {{
@@ -267,6 +286,7 @@ hr {{ border: none !important; border-top: 1px solid rgba(0,220,180,0.08) !impor
 @media (prefers-reduced-motion: reduce) {{
     * {{ animation: none !important; transition: none !important; }}
 }}
+
 </style>
 
 <!-- Filtros SVG para simulação/correção de daltonismo -->
@@ -351,7 +371,7 @@ def coord_card():
 # ── HEADER ───────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;
-            padding:13px 28px;border-bottom:1px solid rgba(0,220,180,0.12);
+            padding:13px 28px 13px 90px;border-bottom:1px solid rgba(0,220,180,0.12);
             background:linear-gradient(90deg,#040710,#081222,#040710);
             position:relative;overflow:hidden;margin-bottom:4px;"
      role="banner" aria-label="COSMOS — Cabeçalho principal">
@@ -413,6 +433,8 @@ with st.sidebar:
     if st.button("▶  NOVA MISSÃO", type="primary", use_container_width=True):
         st.session_state.active_chat = ai_model.start_chat(history=[])
         st.session_state.current_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        st.session_state.rodada_perguntas_respondidas = 0
+        st.session_state.rodada_acertos = 0
         st.rerun()
 
     st.markdown("### Banco de Memória")
@@ -499,6 +521,17 @@ with st.sidebar:
             st.rerun()
 
     st.markdown("### Subsistemas")
+
+    # ── INDICADOR DE PROGRESSO DA RODADA ───────────────────────────────────
+    st.markdown(f"""
+    <div style="font-family:'JetBrains Mono',monospace;font-size:{fs['small']}px;
+                color:rgba(0,220,180,0.6);text-align:center;margin:4px 0 10px;
+                letter-spacing:1px;">
+        ▸ Rodada: pergunta {min(st.session_state.rodada_perguntas_respondidas + 1, 3)}/3
+        &nbsp;|&nbsp; Acertos: {st.session_state.rodada_acertos}/{st.session_state.rodada_perguntas_respondidas}
+    </div>
+    """, unsafe_allow_html=True)
+
 
     with st.expander("Insira um documento (PDF ou TXT)"):
         uploaded_file = st.file_uploader(
@@ -615,6 +648,47 @@ def montar_prompt_com_contexto(texto_comando):
     return texto_comando
 
 
+def extrair_avaliacao(texto_resposta):
+    """
+    Lê a tag [CORRETO]/[INCORRETO] no início da resposta do modelo,
+    remove a tag do texto exibido e retorna (texto_limpo, acertou_ou_none).
+    Retorna acertou=None quando não havia tag (ex: primeira cena da missão).
+    """
+    texto_limpo = texto_resposta.strip()
+    acertou = None
+    if texto_limpo.startswith("[CORRETO]"):
+        acertou = True
+        texto_limpo = texto_limpo[len("[CORRETO]"):].strip()
+    elif texto_limpo.startswith("[INCORRETO]"):
+        acertou = False
+        texto_limpo = texto_limpo[len("[INCORRETO]"):].strip()
+    return texto_limpo, acertou
+
+
+def feedback_da_rodada(acertos):
+    """Retorna (mensagem, cor) de acordo com a regra de 3 perguntas por rodada."""
+    if acertos == 3:
+        return (
+            "🟢 **Excelente trabalho! Você acertou todas as 3 perguntas — continue assim!**",
+            "#00DCB4",
+        )
+    elif acertos == 2:
+        return (
+            "🟡 **Parabéns, você está no caminho certo! 2 de 3 corretas.**",
+            "#FFD200",
+        )
+    elif acertos == 1:
+        return (
+            "🟠 **Precisa melhorar, mas isso já é um avanço! 1 de 3 corretas.**",
+            "#FF8C32",
+        )
+    else:
+        return (
+            "🔴 **Precisa melhorar. Não desanime, tente a próxima rodada!**",
+            "#FF3264",
+        )
+
+
 # ── PANE ALEATÓRIA ────────────────────────────────────────────────────────────
 if trigger_quiz:
     # ── FIX: agora também injeta o contexto do documento enviado, igual ao fluxo normal.
@@ -657,7 +731,7 @@ if user_input := st.chat_input("▸   Digite A, B ou C  —  ou um comando de so
         with st.chat_message("user", avatar="🧑‍🚀"):
             st.markdown(user_input)
         with st.chat_message("assistant", avatar="🤖"):
-            with st.spinner("Processando dados..."):
+            with st.spinner("Processando dados telemétricos..."):
                 if len(st.session_state.active_chat.history) == 0:
                     comando_inicial = (
                         f"O usuário iniciou o jogo com o comando: '{user_input}'. "
