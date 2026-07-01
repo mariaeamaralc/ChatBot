@@ -51,6 +51,13 @@ if "espacamento" not in st.session_state:
 if "daltonismo" not in st.session_state:
     st.session_state.daltonismo = "none"  # "none" | "deuteranopia" | "protanopia" | "tritanopia"
 
+# ── FIX: estado persistente do PDF/TXT enviado ─────────────────────────────────
+# Antes essa variável era local ao script e se perdia entre reruns.
+if "uploaded_context" not in st.session_state:
+    st.session_state.uploaded_context = ""
+if "uploaded_file_name" not in st.session_state:
+    st.session_state.uploaded_file_name = None
+
 # Mapas de tamanho de fonte
 FONT_SCALE = {
     "normal":       {"body": 15, "small": 11, "label": 8,  "title": 18, "mono": 11},
@@ -387,8 +394,6 @@ col_principal, col_status = st.columns([3, 1])
 
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
-uploaded_context = ""
-
 with st.sidebar:
     st.markdown(f"""
     <div style="background:rgba(0,220,180,0.04);border-bottom:1px solid rgba(0,220,180,0.1);
@@ -501,17 +506,36 @@ with st.sidebar:
             type=["txt", "pdf"],
             label_visibility="collapsed"
         )
+        # ── FIX: só reprocessa o arquivo quando ele muda, e guarda em session_state
+        # para que o texto extraído sobreviva a reruns subsequentes (cliques em botões etc).
         if uploaded_file is not None:
-            try:
-                if uploaded_file.name.endswith(".txt"):
-                    uploaded_context = uploaded_file.read().decode("utf-8")
-                elif uploaded_file.name.endswith(".pdf"):
-                    pdf_reader = PyPDF2.PdfReader(uploaded_file)
-                    for page in pdf_reader.pages:
-                        uploaded_context += page.extract_text() + "\n"
-                st.success("✓ Manual integrado ao núcleo")
-            except Exception as error:
-                st.error(f"Erro de leitura: {error}")
+            if uploaded_file.name != st.session_state.uploaded_file_name:
+                try:
+                    extracted_text = ""
+                    if uploaded_file.name.endswith(".txt"):
+                        extracted_text = uploaded_file.read().decode("utf-8")
+                    elif uploaded_file.name.endswith(".pdf"):
+                        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                        for page in pdf_reader.pages:
+                            page_text = page.extract_text() or ""
+                            extracted_text += page_text + "\n"
+
+                    if extracted_text.strip():
+                        st.session_state.uploaded_context = extracted_text
+                        st.session_state.uploaded_file_name = uploaded_file.name
+                        st.success(f"✓ Manual integrado ao núcleo ({len(extracted_text)} caracteres extraídos)")
+                    else:
+                        st.warning(
+                            "⚠ Nenhum texto foi extraído do arquivo. "
+                            "Se for um PDF escaneado/imagem, ele precisa de OCR antes de ser usado."
+                        )
+                except Exception as error:
+                    st.error(f"Erro de leitura: {error}")
+            else:
+                # Mesmo arquivo de antes, apenas confirma que segue carregado
+                st.success(f"✓ Manual já integrado ({len(st.session_state.uploaded_context)} caracteres)")
+        elif st.session_state.uploaded_context:
+            st.info(f"▸ Manual ativo: {st.session_state.uploaded_file_name}")
 
     with st.expander("⚠  Pane de Emergência"):
         st.markdown(f"""
@@ -541,35 +565,63 @@ def persist_chat_history():
             json.dump(formatted, f, ensure_ascii=False, indent=4)
 
 
-def execute_safe_request(prompt_text):
+def execute_safe_request(prompt_text, _tentativa=0):
+    MAX_TENTATIVAS = len(CHAVES_VALIDAS)
     try:
         return st.session_state.active_chat.send_message(prompt_text)
     except Exception as error:
         err_msg = str(error).lower()
-        if any(k in err_msg for k in ["429", "quota", "exhausted"]):
-            if st.session_state.key_index < len(CHAVES_VALIDAS) - 1:
-                st.session_state.key_index += 1
-                genai.configure(api_key=CHAVES_VALIDAS[st.session_state.key_index])
-                fallback = genai.GenerativeModel(
-                    model_name="gemini-2.5-flash",
-                    system_instruction=SYSTEM_PROMPT
-                )
-                st.session_state.active_chat = fallback.start_chat(
-                    history=st.session_state.active_chat.history
-                )
-                st.toast("Roteando para antena reserva...", icon="📡")
-                return st.session_state.active_chat.send_message(prompt_text)
-            else:
-                st.error("Link de comunicações rompido — sobrecarga crítica.")
-                st.stop()
+        is_quota_error = any(k in err_msg for k in ["429", "quota", "exhausted", "resourceexhausted"])
+
+        if is_quota_error and st.session_state.key_index < len(CHAVES_VALIDAS) - 1 and _tentativa < MAX_TENTATIVAS:
+            st.session_state.key_index += 1
+            genai.configure(api_key=CHAVES_VALIDAS[st.session_state.key_index])
+            fallback = genai.GenerativeModel(
+                model_name="gemini-2.5-flash",
+                system_instruction=SYSTEM_PROMPT
+            )
+            st.session_state.active_chat = fallback.start_chat(
+                history=st.session_state.active_chat.history
+            )
+            st.toast("Roteando para antena reserva...", icon="📡")
+            # FIX: chamada recursiva tratada, em vez de send_message() solto sem try/except
+            return execute_safe_request(prompt_text, _tentativa=_tentativa + 1)
+
+        if is_quota_error:
+            st.error(
+                "Cota da API esgotada em todas as chaves disponíveis. "
+                "Aguarde alguns instantes (a cota é renovada por minuto) ou verifique seu plano "
+                "em https://ai.google.dev/gemini-api/docs/rate-limits."
+            )
+            st.stop()
         else:
             st.error(f"Erro fatal de telemática: {error}")
             st.stop()
 
 
+def montar_prompt_com_contexto(texto_comando):
+    """
+    Injeta o contexto do PDF/TXT apenas na primeira mensagem da sessão.
+    Como o chat mantém histórico e reenvia tudo a cada turno, repetir o
+    manual inteiro em cada mensagem multiplica o consumo de tokens e
+    estoura a cota da API rapidamente.
+    """
+    eh_primeira_mensagem = len(st.session_state.active_chat.history) == 0
+    if st.session_state.uploaded_context and eh_primeira_mensagem:
+        return (
+            f"Considere os parâmetros deste manual técnico:\n{st.session_state.uploaded_context}\n\n"
+            f"{texto_comando}"
+        )
+    return texto_comando
+
+
 # ── PANE ALEATÓRIA ────────────────────────────────────────────────────────────
 if trigger_quiz:
-    quiz_prompt = "Gere um problema de sobrevivência imediato no espaço envolvendo física ou química e me dê as opções A, B e C."
+    # ── FIX: agora também injeta o contexto do documento enviado, igual ao fluxo normal.
+    quiz_prompt = montar_prompt_com_contexto(
+        "Gere um problema de sobrevivência imediato no espaço envolvendo física ou química "
+        "e me dê as opções A, B e C."
+    )
     with col_principal:
         with st.spinner("Escaneando falhas mecânicas..."):
             response = execute_safe_request(quiz_prompt)
@@ -587,6 +639,8 @@ with col_principal:
     for message in st.session_state.active_chat.history:
         if "Gere um problema de sobrevivência" in message.parts[0].text and message.role == "user":
             continue
+        if "Considere os parâmetros deste manual técnico" in message.parts[0].text and message.role == "user":
+            continue
         role_type = "user" if message.role == "user" else "assistant"
         icon = "🧑‍🚀" if role_type == "user" else "🤖"
         with st.chat_message(role_type, avatar=icon):
@@ -603,18 +657,15 @@ if user_input := st.chat_input("▸   Digite A, B ou C  —  ou um comando de so
         with st.chat_message("user", avatar="🧑‍🚀"):
             st.markdown(user_input)
         with st.chat_message("assistant", avatar="🤖"):
-            with st.spinner("Processando dados telemétricos..."):
+            with st.spinner("Processando dados..."):
                 if len(st.session_state.active_chat.history) == 0:
-                    comando_inicial = f"O usuário iniciou o jogo com o comando: '{user_input}'. Inicie a primeira missão imediatamente com base nisso."
-                    final_prompt = (
-                        f"Considere os parâmetros deste manual técnico:\n{uploaded_context}\n\n{comando_inicial}"
-                        if uploaded_context else comando_inicial
+                    comando_inicial = (
+                        f"O usuário iniciou o jogo com o comando: '{user_input}'. "
+                        f"Inicie a primeira missão imediatamente com base nisso."
                     )
+                    final_prompt = montar_prompt_com_contexto(comando_inicial)
                 else:
-                    final_prompt = (
-                        f"Considere os parâmetros deste manual técnico:\n{uploaded_context}\n\nComando: {user_input}"
-                        if uploaded_context else user_input
-                    )
+                    final_prompt = montar_prompt_com_contexto(user_input)
 
                 response = execute_safe_request(final_prompt)
                 if response:

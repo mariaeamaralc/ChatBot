@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "Considere os parâmetros deste manual técnico:\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nO usuário iniciou o jogo com o comando: 'faz uma missão de acordo com o artigo'. Inicie a primeira missão imediatamente com base nisso."
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "**Computador de Bordo:** ATENÇÃO, COMANDANTE! ESTADO DE EMERGÊNCIA CRÍTICO!\n\nA nave, *Estrela Errante*, acaba de ser atingida por uma chuva de micrometeoritos não detectados. Alarmes estridentes ecoam pela ponte de comando. Luzes de emergência piscam em vermelho, mergulhando o ambiente em um brilho sinistro. O painel de controle pisca freneticamente:\n\n**ALERTA VITAL: SISTEMAS DE SUPORTE DE VIDA GRAVEMENTE COMPROMETIDOS!**\n*   **Níveis de Oxigênio (O2):** 15% (caindo rapidamente!)\n*   **Níveis de Dióxido de Carbono (CO2):** 0.5% (subindo perigosamente!)\n*   **Pressão da Cabine:** Instável (flutuando entre 0.8 e 0.9 atm!)\n\nVocê sente o ar rarefeito e uma leve tontura. O tempo é crucial. Cada segundo de inação pode significar a perda de consciência e, eventualmente, a falha dos seus sistemas biológicos.\n\n**O que você faz?**\n\nA. **Ajustar as válvulas de compensação de pressão nos módulos de purificação de ar:** Na esperança de estabilizar a integridade estrutural e otimizar o fluxo para os sistemas, mesmo com danos.\nB. **Ativar os geradores de oxigênio de emergência baseados em cloreto de sódio (NaClO3):** Para injetar rapidamente O2 na atmosfera da cabine e combater a hipóxia iminente.\nC. **Redirecionar a energia auxiliar para os filtros de CO2 baseados em hidróxido de lítio (LiOH):** Para combater o acúmulo tóxico de dióxido de carbono e evitar a hipercapnia."
+        ]
+    }
+]

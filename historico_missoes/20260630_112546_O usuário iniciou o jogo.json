@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "O usuário iniciou o jogo com o comando: 'a'. Inicie a primeira missão imediatamente com base nisso."
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "**Computador de Bordo – Missão: Sobrevivência Orbital**\n\n**STATUS:** INICIADO\n**DATA/HORA ESTELAR:** 347.07.2452 / 14:38\n**LOCALIZAÇÃO:** Cinturão de Kuiper, Borda Externa\n\n\"Alerta de Descompressão Crítica! Alerta de Descompressão Crítica!\" A voz sintética do Computador de Bordo ecoa pela cabine enquanto um alarme estridente corta o silêncio do espaço profundo. Você está a bordo da *Pioneiro*, sua nave de exploração unipessoal, a milhões de quilômetros de qualquer posto avançado.\n\nUm impacto súbito e violento sacudiu a nave – talvez um micrometeorito de alta velocidade, talvez um fragmento de gelo espacial. Agora, um rasgo de aproximadamente 30 centímetros brilha sinistramente na blindagem do casco principal, à sua direita. O ar rarefeito assobia para fora, puxando itens soltos em sua direção ao ser expelido para o vácuo gelado. O medidor de pressão da cabine despenca rapidamente, e você sente o ar gelar ao seu redor, enquanto a temperatura cai de 22°C para alarmantes 5°C.\n\nO visor pisca: **PRESSÃO CRÍTICA EM 45 SEGUNDOS. FALHA ESTRUTURAL IMINENTE.**\n\nVocê precisa agir AGORA! Qual a sua decisão, explorador?\n\n---\n\n**Escolha sua ação:**\n\n**A) Vedação de Emergência:** Você rapidamente verifica seu inventário e encontra um kit de reparo de emergência: uma manta térmica de alta resistência e um tubo de selante biopolimérico de cura rápida. Você decide aplicar a manta sobre o rasgo, fixando-a firmemente com o selante, esperando que a vedação resista à pressão diferencial.\n\n**B) Equalização de Pressão:** Você raciocina que a pressão interna é o que está causando a fuga de ar. Você decide abrir todas as comportas internas para o restante da nave (compartimento de carga, laboratório pequeno), para \"diluir\" o ar da cabine e, assim, diminuir a pressão interna total, reduzindo a taxa de escape enquanto tenta encontrar uma solução mais permanente.\n\n**C) Propulsão Orientada:** Você tem a ideia de virar a nave e usar os propulsores laterais para \"empurrar\" o ar de volta para dentro da cabine através do rasgo, usando a força dos jatos para contornar a diferença de pressão e ganhar tempo para que o sistema de auto-selagem se reinicie."
+        ]
+    }
+]

@@ -1,0 +1,14 @@
+[
+    {
+        "role": "user",
+        "parts": [
+            "Considere os parâmetros deste manual técnico:\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nO usuário iniciou o jogo com o comando: 'utilize o artigo'. Inicie a primeira missão imediatamente com base nisso."
+        ]
+    },
+    {
+        "role": "model",
+        "parts": [
+            "BEM-VINDO, NAVEGADOR. SEUS PARÂMETROS OPERACIONAIS FORAM CARREGADOS. PREPARE-SE PARA A REALIDADE DO VÁCUO.\n\n**PRIMEIRA MISSÃO: OLHO DA TEMPESTADE**\n\n\"ALERTA! ALERTA DEPRESSURIZAÇÃO IMEDIATA! SEÇÃO DE PROA COMPROMETIDA!\" A voz sintética do Computador de Bordo ecoa pela ponte da sua nave de exploração, sobrepondo-se ao guincho metálico da fuselagem. Painéis de controle piscam em vermelho vibrante. Você sente a sucção sutil, mas crescente, à medida que o ar rarefeito tenta escapar para o vácuo gelado do espaço. O medidor de pressão na tela principal despenca perigosamente: **0.8 atm... 0.7 atm...** Você tem apenas segundos antes que a pressão interna caia a níveis letais e a atmosfera se disperse completamente.\n\nQual a sua ação imediata?\n\n**A) Correr para a escotilha de emergência na seção de proa e tentar selá-la manualmente com o mecanismo de travamento.**\n**B) Acionar o sistema de recompressão de emergência, injetando rapidamente uma mistura de N2/O2 de tanques secundários, enquanto o sistema tenta isolar automaticamente a área comprometida.**\n**C) Lançar-se para a caixa de trajes EVA mais próxima, vestindo-o para ganhar tempo e tentar identificar a fissura.**"
+        ]
+    }
+]
